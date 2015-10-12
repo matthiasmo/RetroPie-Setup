@@ -46,6 +46,32 @@ function disable_autostart() {
         rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
     fi
     rm -f /etc/profile.d/10-emulationstation.sh
+    rm -f /etc/profile.d/11-Kodi.sh	
+}
+
+function enable_autostart_kodi() {
+    if [[ "$__raspbian_ver" -lt "8" ]]; then
+        sed -i "s|^1:2345:.*|1:2345:respawn:/bin/login -f $user tty1 </dev/tty1 >/dev/tty1 2>\&1|g" /etc/inittab
+        update-rc.d lightdm disable 2 # taken from /usr/bin/raspi-config
+        sed -i "/emulationstation/d" /etc/profile
+    else
+        mkdir -p /etc/systemd/system/getty@tty1.service.d/
+        cat >/etc/systemd/system/getty@tty1.service.d/autologin.conf <<_EOF_
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $user --noclear %I 38400 linux
+_EOF_
+    fi
+    cat >/etc/profile.d/11-Kodi.sh <<_EOF_
+# wait for omxplayer to finish playing startup video (if running)
+while pgrep omxplayer &>/dev/null;
+    do sleep 1;
+done
+
+# launch Kodi, then emulationstation (if we are on the correct tty)
+[ "\`tty\`" = "/dev/tty1" ] /home/pi/RetroPie/roms/ports/Kodi.sh && emulationstation
+_EOF_
+
 }
 
 function configure_autostart() {
@@ -53,6 +79,7 @@ function configure_autostart() {
     options=(
         1 "Original boot behaviour"
         2 "Start Emulation Station at boot."
+	3 "Start Kodi first, then start Emulation Station."
     )
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
     if [[ -n "$choices" ]]; then
@@ -62,9 +89,18 @@ function configure_autostart() {
                 printMsgs "dialog" "Enabled original boot behaviour. ATTENTION: If you still have the custom splash screen enabled (via this script), you need to jump between consoles after booting via Ctrl+Alt+F2 and Ctrl+Alt+F1 to see the login prompt. You can restore the original boot behavior of the RPi by disabling the custom splash screen with this script."
                 ;;
             2)
+                disable_autostart
                 enable_autostart
                 printMsgs "dialog" "Emulation Station is now starting on boot."
                 ;;
+	        3)  if [[test -x /home/pi/RetroPie/roms/ports/Kodi.sh]];then
+		        disable_autostart
+		        enable_autostart_kodi
+		        printMsgs "dialog" "Kodi now starts on boot. When Kodi is closed Emulation Station will start."
+		        else
+		            printMsgs "dialog" "ERROR: Kodi doesn't seem installed. You can install it in EXPERIMENTAL Packages. No change made.
+		        fi
+		        ;;
         esac
     fi
 }
