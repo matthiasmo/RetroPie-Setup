@@ -93,13 +93,13 @@ function configure_autostart() {
                 enable_autostart
                 printMsgs "dialog" "Emulation Station is now starting on boot."
                 ;;
-	        3)  if [[test -x /home/pi/RetroPie/roms/ports/Kodi.sh]];then
-		        disable_autostart
-		        enable_autostart_kodi
-		        printMsgs "dialog" "Kodi now starts on boot. When Kodi is closed Emulation Station will start."
-		        else
-		            printMsgs "dialog" "ERROR: Kodi doesn't seem installed. You can install it in EXPERIMENTAL Packages. No change made.
-		        fi
+	    3)  if [[test -x /home/pi/RetroPie/roms/ports/Kodi.sh]];then
+			disable_autostart
+			enable_autostart_kodi
+			printMsgs "dialog" "Kodi now starts on boot. When Kodi is closed Emulation Station will start."
+		else
+			printMsgs "dialog" "ERROR: Kodi doesn't seem installed. You can install it in EXPERIMENTAL Packages. No change made."
+		fi
 		        ;;
         esac
     fi
